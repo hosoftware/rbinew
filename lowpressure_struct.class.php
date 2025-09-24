@@ -3,22 +3,29 @@ session_start();
 ini_set('display_errors', '0');
 class struct_option {
 
-	function struct_option() {
+	function __construct() {
 		$this->dbhost = "localhost";
 		$this->dbuser = "erp";
 		$this->dbpass = "aries12171219";
 		$this->dbname = "hiles";
 		$this->port=3306;
-		$this->socket="/tmp/mysql.sock";
+	//	$this->socket="/tmp/mysql.sock";
 		$this->project_no =0;
-		$this->dbcon = mysql_connect($this->dbhost,$this->dbuser,$this->dbpass,$this->port) or die("Error in mysql connection");
-		$this->selecteddb = mysql_select_db($this->dbname);
+		$this->dbcon = mysqli_connect(
+			$this->dbhost,
+			$this->dbuser,
+			$this->dbpass,
+			$this->dbname,   // database name goes here
+			$this->port     // port here
+			//$this->socket    // optional socket
+		) or die("Error in mysql connection");
+		$this->selecteddb = mysqli_select_db($this->dbcon,$this->dbname);
 		if(empty($_SESSION['userid']) && basename($_SERVER['PHP_SELF'])!='index.php') {
 			header('location:./');
 		}
 		if(!empty($_REQUEST['project_id'])) {
 			$rslt_pr = $this->display();
-			$row_table = mysql_fetch_assoc($rslt_pr);
+			$row_table = mysqli_fetch_assoc($rslt_pr);
 			$this->project_no =$row_table['project_no'];
 			$sql_table = "CREATE TABLE IF NOT EXISTS  ".$this->project_no."_lowpressure_image_details (
 			 id int(10) NOT NULL AUTO_INCREMENT,
@@ -87,7 +94,7 @@ class struct_option {
 			 width int(10) NOT NULL,
 			 PRIMARY KEY (id)
 			) ";
-			mysql_query($sql_table);
+			mysqli_query($this->dbcon,$sql_table);
 			$sql_table = "CREATE TABLE IF NOT EXISTS  ".$this->project_no."_lowpressure_struct_option (
 						id int(10) NOT NULL AUTO_INCREMENT,
 						 project_id int(10) NOT NULL DEFAULT '0',
@@ -123,7 +130,7 @@ class struct_option {
 						 sort_order bigint(20) NOT NULL,
 						 PRIMARY KEY (id)
 						)";
-						mysql_query($sql_table);
+						mysqli_query($this->dbcon,$sql_table);
 
 		}
 		if(!empty($_REQUEST['doAction'])) {
@@ -143,12 +150,12 @@ class struct_option {
 					'".addslashes($_REQUEST['text_date_of_sarvey'])."',
 					'".addslashes($_REQUEST['txtsarveydate'])."'
 					)";
-					mysql_query($sql_ins);
-					$project_id = mysql_insert_id();
+					mysqli_query($this->dbcon,$sql_ins);
+					$project_id = mysqli_insert_id($this->dbcon);
 					$maxno = $this->getMaxProject();
 					$maxno++;
 					$sql_upd = "UPDATE rbi_low_pressure_project_details SET project_no=". $maxno." WHERE id=".$project_id;
-					mysql_query($sql_upd);
+					mysqli_query($this->dbcon,$sql_upd);
 					$sql_table = "CREATE TABLE IF NOT EXISTS  ".$maxno."_lowpressure_struct_option (
 						id int(10) NOT NULL AUTO_INCREMENT,
 						 project_id int(10) NOT NULL DEFAULT '0',
@@ -184,7 +191,7 @@ class struct_option {
 						 sort_order bigint(20) NOT NULL,
 						 PRIMARY KEY (id)
 						)";
-						mysql_query($sql_table);
+						mysqli_query($this->dbcon,$sql_table);
 
 					header('location:lowpressure_struct_option.php?project_id='.$project_id);
 					break;
@@ -201,10 +208,10 @@ class struct_option {
 					sarveydate = '".addslashes($_REQUEST['txtsarveydate'])."'
 					WHERE id = '".$_REQUEST['project_id']."'
 					";
-					mysql_query($sql_update);
+					mysqli_query($this->dbcon,$sql_update);
 					 $sql_sel = "SELECT count(id) no FROM ".$this->project_no."_lowpressure_image_details WHERE  project_id = '".$_REQUEST['project_id']."'";
-					$rslt = mysql_query($sql_sel);
-					$row =  mysql_fetch_assoc($rslt);
+					$rslt = mysqli_query($this->dbcon,$sql_sel);
+					$row =  mysqli_fetch_assoc($rslt);
 					if($row['no']>0) {
 						$this->updateImageDetails();
 
@@ -218,8 +225,8 @@ class struct_option {
 				case 'CopyProject':
 					$project_id = $_REQUEST['project_id'];
 					$sql_sel = "SELECT p.* FROM  rbi_low_pressure_project_details p  WHERE p.id=".$project_id;
-					$result = mysql_query($sql_sel);
-					$row = mysql_fetch_assoc($result);
+					$result = mysqli_query($this->dbcon,$sql_sel);
+					$row = mysqli_fetch_assoc($result);
 					$sql_ins = "INSERT IGNORE INTO rbi_low_pressure_project_details(	project,jobno,location,	tank,reference,incharge,year,date_of_sarvey,sarveydate,copy_id)
 					VALUES('".addslashes($row['project'])."',
 					'".addslashes($row['jobno'])."',
@@ -232,18 +239,18 @@ class struct_option {
 					'".addslashes($row['sarveydate'])."',
 					'".$project_id."'
 					)";
-					mysql_query($sql_ins);
-					$project_id = mysql_insert_id();
+					mysqli_query($this->dbcon,$sql_ins);
+					$project_id = mysqli_insert_id($this->dbcon);
 					$sql_sel = "SELECT p.*,s.* FROM ".$this->project_no."_lowpressure_struct_option s LEFT JOIN rbi_low_pressure_project_details p ON s.project_id=p.id WHERE s.project_id=".$_REQUEST['project_id'];
 
-					$result1 = mysql_query($sql_sel);
+					$result1 = mysqli_query($this->dbcon,$sql_sel);
 
-					$project_id = mysql_insert_id();
+					$project_id = mysqli_insert_id($this->dbcon);
 					$maxno = $this->getMaxProject();
 					$maxno++;
 
 					$sql_upd = "UPDATE rbi_low_pressure_project_details SET project_no=". $maxno." WHERE id=".$project_id;
-					mysql_query($sql_upd);
+					mysqli_query($this->dbcon,$sql_upd);
 
 					$sql_table = "CREATE TABLE IF NOT EXISTS  ".$maxno."_lowpressure_struct_option (
 						 id int(10) NOT NULL AUTO_INCREMENT,
@@ -280,9 +287,9 @@ class struct_option {
 						 sort_order bigint(20) NOT NULL,
 						 PRIMARY KEY (id)
 						)";
-						mysql_query($sql_table);
+						mysqli_query($this->dbcon,$sql_table);
 
-					while($row1 = mysql_fetch_assoc($result1)) {
+					while($row1 = mysqli_fetch_assoc($result1)) {
 						print $sql_ins = "INSERT IGNORE INTO ".$maxno."_lowpressure_struct_option(project_id,item,material_type,material,non_severe_corr,install_date,
 		od_size,
 		nde,pressure,allowable_stress,quality_factor,weld_factor,coefficient,conditions,schedules,wall_tickness,corrosion,thickness1,thickness2,
@@ -318,15 +325,15 @@ class struct_option {
 							'".addslashes($row1['sort_order'])."',
 							'".addslashes($row1['corrosion_rate'])."'
 							)";
-							mysql_query($sql_ins);
+							mysqli_query($this->dbcon,$sql_ins);
 					}
 					//header('location:lowpressure_struct_option.php?project_id='.$project_id);
 					break;
 				case 'CopyBlankProject':
 					$project_id = $_REQUEST['project_id'];
 					$sql_sel = "SELECT p.* FROM  project_details p  WHERE p.id=".$project_id;
-					$result = mysql_query($sql_sel);
-					$row = mysql_fetch_assoc($result);
+					$result = mysqli_query($this->dbcon,$sql_sel);
+					$row = mysqli_fetch_assoc($result);
 					$sql_ins = "INSERT IGNORE INTO project_details(	project,jobno,location,	tank,reference,incharge,year,date_of_sarvey,sarveydate,copy_id)
 					VALUES('".addslashes($row['project'])."',
 					'".addslashes($row['jobno'])."',
@@ -339,17 +346,17 @@ class struct_option {
 					'".addslashes($row['sarveydate'])."',
 					'".$project_id."'
 					)";
-					mysql_query($sql_ins);
-					$project_id = mysql_insert_id();
+					mysqli_query($this->dbcon,$sql_ins);
+					$project_id = mysqli_insert_id($this->dbcon);
 					$sql_sel = "SELECT p.*,s.* FROM ".$this->project_no."_lowpressure_struct_option s LEFT JOIN project_details p ON s.project_id=p.id WHERE s.project_id=".$_REQUEST['project_id'];
 
-					$result1 = mysql_query($sql_sel);
-					$project_id = mysql_insert_id();
+					$result1 = mysqli_query($this->dbcon,$sql_sel);
+					$project_id = mysqli_insert_id($this->dbcon);
 					$maxno = $this->getMaxProject();
 					$maxno++;
 
 					$sql_upd = "UPDATE rbi_low_pressure_project_details SET project_no=". $maxno." WHERE id=".$project_id;
-					mysql_query($sql_upd);
+					mysqli_query($this->dbcon,$sql_upd);
 
 					$sql_table = "CREATE TABLE IF NOT EXISTS  ".$maxno."_lowpressure_struct_option (
 						id int(10) NOT NULL AUTO_INCREMENT,
@@ -386,9 +393,9 @@ class struct_option {
 						 sort_order bigint(20) NOT NULL,
 						 PRIMARY KEY (id)
 						)";
-						mysql_query($sql_table);
+						mysqli_query($this->dbcon,$sql_table);
 
-					while($row1 = mysql_fetch_assoc($result1)) {
+					while($row1 = mysqli_fetch_assoc($result1)) {
 						$sql_ins = "INSERT IGNORE INTO ".$maxno."_lowpressure_struct_option(project_id,item,material_type,material,install_date,
 		od_size,
 		nde,pressure,allowable_stress,conditions,schedules,wall_tickness,corrosion,thickness1,thickness2,
@@ -420,7 +427,7 @@ class struct_option {
 							'".addslashes($row1['sort_order'])."',
 							''
 							)";
-							mysql_query($sql_ins);
+							mysqli_query($this->dbcon,$sql_ins);
 					}
 					header('location:lowpressure_struct_option.php?project_id='.$project_id);
 					break;
@@ -428,27 +435,27 @@ class struct_option {
 					$project_id = $_REQUEST['project_id'];
 					$struct_id = $_REQUEST['struct_id'];
 					$sql_del = "DELETE FROM ".$this->project_no."_lowpressure_struct_option WHERE id=".$struct_id;
-					mysql_query($sql_del);
+					mysqli_query($this->dbcon,$sql_del);
 					header('location:lowpressure_struct_option.php?project_id='.$project_id);
 					break;
 				case 'DeleteProject':
 					$project_id = $_REQUEST['project_id'];
 					 $sql_del1 = "DROP TABLE ".$this->project_no."_lowpressure_struct_option";
-					mysql_query($sql_del1);
+					mysqli_query($this->dbcon,$sql_del1);
 					 $sql_del2 = "DROP TABLE ".$this->project_no."_lowpressure_image_details";
-					mysql_query($sql_del2);
+					mysqli_query($this->dbcon,$sql_del2);
 					 $sql_del3 = "DELETE FROM rbi_low_pressure_project_details WHERE id=".$project_id;
-					mysql_query($sql_del3);
+					mysqli_query($this->dbcon,$sql_del3);
 					header('location:lowpressure_project_listing.php');
 					break;
 				case'Update_Sortorder':
 					$project_id = $_REQUEST['project_id'];
 					$sql="SELECT id FROM ".$this->project_no."_lowpressure_struct_option WHERE project_id=".$project_id;
-					$result = mysql_query($sql);
+					$result = mysqli_query($this->dbcon,$sql);
 					$sort_order=1;
-					while($row = mysql_fetch_assoc($result)) {
+					while($row = mysqli_fetch_assoc($result)) {
 						$sql_update = "UPDATE ".$this->project_no."_lowpressure_struct_option SET sort_order=".$sort_order." where id=".$row['id'];
-						mysql_query($sql_update);
+						mysqli_query($this->dbcon,$sql_update);
 						$sort_order++;
 					}
 					break;
@@ -467,10 +474,10 @@ class struct_option {
 					break;
 				case"DeleteImage":
 					$sqlimg = "SELECT image".$_REQUEST['image_no']." image FROM ".$this->project_no."_lowpressure_image_details WHERE project_id=".$_REQUEST['project_id'];
-					$rslt = mysql_query($sqlimg);
-					$row_img = mysql_fetch_assoc($rslt);
+					$rslt = mysqli_query($this->dbcon,$sqlimg);
+					$row_img = mysqli_fetch_assoc($rslt);
 					$sqldel = "UPDATE ".$this->project_no."_lowpressure_image_details SET image".$_REQUEST['image_no']."='' WHERE project_id=".$_REQUEST['project_id'];
-					$rslt = mysql_query($sqldel);
+					$rslt = mysqli_query($this->dbcon,$sqldel);
 					unlink('upload_low_pressure_img/'.$row_img['image']);
 					break;
 			}
@@ -481,7 +488,7 @@ class struct_option {
 		if(!empty($_REQUEST['project_id'])) {
 			$project_id = $_REQUEST['project_id'];
 			$sql_sel = "SELECT p.* FROM  rbi_low_pressure_project_details p  WHERE p.id=".$project_id;
-			$result = mysql_query($sql_sel);
+			$result = mysqli_query($this->dbcon,$sql_sel);
 			return $result;
 		}
 	}
@@ -489,15 +496,15 @@ class struct_option {
 	function get_stuct_option() {
 		$project_id = $_REQUEST['project_id'];
 		$rslt1 = $this->display();
-		$row_res = mysql_fetch_assoc($rslt1);
+		$row_res = mysqli_fetch_assoc($rslt1);
 		$table_no = $row_res['project_no'];
 		$sql_sel = "SELECT p.*,s.* FROM ".$table_no."_lowpressure_struct_option s
 		LEFT JOIN rbi_low_pressure_project_details p
 		ON s.project_id=p.id
 		WHERE s.project_id=".$project_id." order by s.sort_order";
-		$result = mysql_query($sql_sel);
-		$struct_option = "";
-		while($row = mysql_fetch_assoc($result)) {
+		$result = mysqli_query($this->dbcon,$sql_sel);
+		//$struct_option = "";
+		while($row = mysqli_fetch_assoc($result)) {
 			if(empty($row['item'])) $row['item'] = '';
 			if(empty($row['material_type'])) $row['material_type'] = '';
 			if(empty($row['material'])) $row['material'] = '';
@@ -559,8 +566,10 @@ class struct_option {
 			if(is_numeric($thickness8)&& !empty($thickness8)) {
 				$arrThick1[$i++]=$thickness8;
 			}
-			$row['mean_thickness1'] = round((min($arrThick))*25.4,2);
-			$row['mean_thickness2'] = round((min($arrThick1))*25.4,2);
+			// $row['mean_thickness1'] = round((min($arrThick))*25.4,2);
+			// $row['mean_thickness2'] = round((min($arrThick1))*25.4,2);
+			$row['mean_thickness1'] = !empty($arrThick) ? round(min($arrThick) * 25.4, 2) : 0;
+            $row['mean_thickness2'] = !empty($arrThick1) ? round(min($arrThick1) * 25.4, 2) : 0;
 			if($row['pressure']=='0.00') {
 				$row['pressure']="";
 			}
@@ -677,8 +686,10 @@ class struct_option {
 					$row['non_severe_corr'] = 'true';
 				}
 				$row['design_thickness'] = round($row['design_thickness']*25.4,2);
-				$row['diff_thickness'] = round($row['diff_thickness']*25.4,2);
-				$row['remain_life']= round($row['remain_life'],2);
+				// $row['diff_thickness'] = round($row['diff_thickness']*25.4,2);
+				// $row['remain_life']= round($row['remain_life'],2);
+				$row['diff_thickness'] = is_numeric($row['diff_thickness']) ? round($row['diff_thickness'] * 25.4, 2) : 0;
+                $row['remain_life']    = is_numeric($row['remain_life'])    ? round($row['remain_life'], 2) : 0;
 				//$row['remain_life'] = $row['remain_life']*25.4;
 
 				$struct_option[] = array(
@@ -779,8 +790,8 @@ class struct_option {
 		'".addslashes($_REQUEST['txtheight'])."',
 		'".addslashes($_REQUEST['txtwidth'])."'
 		)";
-		mysql_query($sql_ins);
-		$image_id = mysql_insert_id();
+		mysqli_query($this->dbcon,$sql_ins);
+		$image_id = mysqli_insert_id($this->dbcon);
 		return $image_id;
 	}
 
@@ -835,17 +846,18 @@ class struct_option {
 		recommendations4 = '".addslashes($_REQUEST['txtrecommendations4'])."'
 		WHERE project_id = '".$_REQUEST['project_id']."'
 		";
-		mysql_query($upd_sql);
+		mysqli_query($this->dbcon,$upd_sql);
 	}
 
 	/*function for displaying image details*/
 	function displayImageDetails($project_id=null) {
 		$sql_sel = "SELECT * FROM ".$this->project_no."_lowpressure_image_details WHERE project_id='".$project_id."'";
-		$result = mysql_query($sql_sel);
+		$result = mysqli_query($this->dbcon,$sql_sel);
 		return $result;
 	}
 
 	function addImage() {
+		
 		for($i=1;$i<=16;$i++) {
 			if(!empty($_FILES['txtfile'.$i]['name'])) {
 				$extn = substr($_FILES['txtfile'.$i]['name'],strpos($_FILES['txtfile'.$i]['name'],'.'));
@@ -854,6 +866,8 @@ class struct_option {
 				$original_file = $_FILES['txtfile'.$i]['tmp_name'];
 				$filepath = 'upload_low_pressure_img/original/'.$filename;
 				$resize = 'upload_low_pressure_img/'.$filename;
+
+				
 				if(copy($original_file,$filepath)) {
 					include_once "hft_image.php";
 					include_once "hft_image_errors.php";
@@ -862,7 +876,7 @@ class struct_option {
 					$height = $_REQUEST['txtheight'];
 					$width = $_REQUEST['txtwidth'];
 
-
+					
 					//$objImage = new hft_image($filepath);
 					//$objImage->resize($width, $height, '0');
 					//$objImage->output_resized($resize, "JPEG");
@@ -871,15 +885,16 @@ class struct_option {
 					$sql_upd = "UPDATE IGNORE ".$this->project_no."_lowpressure_image_details
 					SET image".$i."='".$filename."'
 					WHERE project_id = '".$_REQUEST['project_id']."'";
-					mysql_query($sql_upd);
+					//echo $sql_upd;exit;
+					mysqli_query($this->dbcon,$sql_upd);
 				}
 			}
 		}
 	}
 	function get_project_list() {
 		$sql = "SELECT * FROM rbi_low_pressure_project_details WHERE copy_id=0 ORDER BY id,copy_id";
-		$result = mysql_query($sql);
-		while($row = mysql_fetch_assoc($result)) {
+		$result = mysqli_query($this->dbcon,$sql);
+		while($row = mysqli_fetch_assoc($result)) {
 			$struct1="";
 				$struct2="";
 			if(empty($row['copy_id'])) {
@@ -901,8 +916,8 @@ class struct_option {
 			'delete_project'=>"<a href=\"javascript:deleteProject('".$row['id']."');\"><img src=\"images/b_drop.png\"/></a>",
 			);
 			$sql1 = "SELECT * FROM rbi_low_pressure_project_details WHERE copy_id='".$row['id']."' ORDER BY id,copy_id";
-			$result1 = mysql_query($sql1);
-			while($row1 = mysql_fetch_assoc($result1)) {
+			$result1 = mysqli_query($this->dbcon,$sql1);
+			while($row1 = mysqli_fetch_assoc($result1)) {
 				$struct1="";
 				$struct2="";
 					if(!empty($row1['copy_id'])) {
@@ -931,8 +946,8 @@ class struct_option {
 	/*Function for fetching maximum of projects*/
 	function getMaxProject() {
 		$sql="SELECT MAX(project_no) no  FROM rbi_low_pressure_project_details";
-		$result = mysql_query($sql);
-		$row = mysql_fetch_assoc($result);
+		$result = mysqli_query($this->dbcon,$sql);
+		$row = mysqli_fetch_assoc($result);
 		return $row['no'];
 	}
 }
