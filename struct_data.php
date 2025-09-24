@@ -1,8 +1,10 @@
 <?php
 include_once "add_struct.class.php";
+$dbcon = mysqli_connect("localhost", "erp", "aries12171219", "hiles", 3306)
+    or die("Error in mysql connection");
 if(!empty($_REQUEST['update']) && !empty($_REQUEST['project_id'])) {
 	$rslt = $objstruct->display();
-	$row_table = mysql_fetch_assoc($rslt);
+	$row_table = mysqli_fetch_assoc($rslt);
 	$table_id = $row_table['project_no']."_";
 	if(empty($_REQUEST['item'])||$_REQUEST['item']=='null')
 		$_REQUEST['item'] = '';
@@ -73,7 +75,7 @@ if(!empty($_REQUEST['update']) && !empty($_REQUEST['project_id'])) {
 	if(!empty($_REQUEST['doAction'])&&$_REQUEST['doAction']=='Delete_Struct') {
 		$struct_id = $_REQUEST['struct_id'];
 		 $sql_del = "DELETE FROM ".$table_id."struct_option WHERE id=".$struct_id;
-		mysql_query($sql_del);
+		mysqli_query($dbcon,$sql_del);
 		$struct_options = $objstruct->get_stuct_option();
 
 		echo json_encode($struct_options);
@@ -193,7 +195,7 @@ if(!empty($_REQUEST['update']) && !empty($_REQUEST['project_id'])) {
 		project_id='".addslashes($_REQUEST['project_id'])."',
 		remarks='".addslashes($_REQUEST['remarks'])."'
 		WHERE id = '".addslashes($_REQUEST['struct_id'])."'";
-		mysql_query($sql_upd);
+		mysqli_query($dbcon,$sql_upd);
 	}
 	else if(!empty($_REQUEST['doAction'])&&$_REQUEST['doAction']=='add_new') {
 		$sort_order = $_REQUEST['sort_order']+1;
@@ -315,18 +317,18 @@ if(!empty($_REQUEST['update']) && !empty($_REQUEST['project_id'])) {
 		'".addslashes($_REQUEST['corrosion_rate'])."',
 		'".addslashes($_REQUEST['design_thickness'])."'
 		)";
-		mysql_query($sql_ins);
-		$id=mysql_insert_id();
+		mysqli_query($dbcon,$sql_ins);
+		$id=mysqli_insert_id($dbcon);
 		$sql="SELECT id FROM ".$table_id."struct_option WHERE sort_order>=".$sort_order." and project_id=".$_REQUEST['project_id']." order by sort_order";
 		$sort_order++;
-		$result = mysql_query($sql);
-		while($row = mysql_fetch_assoc($result)) {
+		$result = mysqli_query($dbcon,$sql);
+		while($row = mysqli_fetch_assoc($result)) {
 			$sql_update = "UPDATE ".$table_id."struct_option SET sort_order=".$sort_order." where id=".$row['id'];
-			mysql_query($sql_update);
+			mysqli_query($dbcon,$sql_update);
 			$sort_order++;
 		}
 		 $sql_update1 = "UPDATE ".$table_id."struct_option SET sort_order=".$updsort_order." where id=".$id;
-		mysql_query($sql_update1);
+		mysqli_query($dbcon,$sql_update1);
 	}
 	else{
 		if(empty($_REQUEST['item'])) {
@@ -451,15 +453,15 @@ if(!empty($_REQUEST['update']) && !empty($_REQUEST['project_id'])) {
 		'".addslashes($_REQUEST['corrosion_rate'])."',
 		'".addslashes($_REQUEST['design_thickness'])."'
 		)";
-		mysql_query($sql_ins);
-		$id=mysql_insert_id();
+		mysqli_query($dbcon,$sql_ins);
+		$id=mysqli_insert_id($this->dbcon);
 		$sql="SELECT max(sort_order) sort_order FROM ".$table_id."struct_option WHERE project_id=".$_REQUEST['project_id'];
-		$result = mysql_query($sql);
-		$row = mysql_fetch_assoc($result);
+		$result = mysqli_query($dbcon,$sql);
+		$row = mysqli_fetch_assoc($result);
 		if(empty($row['sort_order'])) $row['sort_order']=0;
 		$row['sort_order'] = $row['sort_order']+1;
 		 $sql_update1 = "UPDATE ".$table_id."struct_option SET sort_order=".$row['sort_order']." where id=".$id;
-		mysql_query($sql_update1);
+		mysqli_query($dbcon,$sql_update1);
 	}
 	$struct_options = $objstruct->get_stuct_option();
 
