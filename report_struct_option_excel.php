@@ -31,7 +31,7 @@ $sharedStyle1 = new Style();
 $objPHPExcel->getDefaultStyle()->getFont()->setName('Times New Roman')->setSize(13);
 $objPHPExcel->getActiveSheet()->getPageSetup()->setFitToWidth(1);
 $objPHPExcel->getActiveSheet()->getPageSetup()->setFitToHeight(1);
-
+exit;
 $objPHPExcel->getActiveSheet()->getColumnDimension('A')->setWidth(20);
 	$objPHPExcel->getActiveSheet()->getColumnDimension('B')->setWidth(6);
 	$objPHPExcel->getActiveSheet()->getColumnDimension('C')->setWidth(6);
